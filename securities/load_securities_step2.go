@@ -15,21 +15,21 @@ import (
 
 const DateFormant = "2006-01-02"
 
-type FileDescription struct {
+type fileDescription struct {
 	Metadata map[string]any
 	Columns  []string
 	Data     [][]any
 }
 
-type FileBoard struct {
+type fileBoard struct {
 	Metadata map[string]map[string]any
 	Columns  []string
 	Data     [][]any
 }
 
-type FileModel struct {
-	Description FileDescription
-	Boards      FileBoard
+type fileModel struct {
+	Description fileDescription
+	Boards      fileBoard
 }
 
 func parseFloat(value string) float32 {
@@ -59,7 +59,7 @@ func parseLong(value string) int64 {
 	return val
 }
 
-func GetSecurity(columns []string, values [][]any) models.Security {
+func getSecurity(columns []string, values [][]any) models.Security {
 
 	nameIndex, valueIndex := 0, 0
 	for ind, column := range columns {
@@ -162,7 +162,7 @@ func GetSecurity(columns []string, values [][]any) models.Security {
 	return sec
 }
 
-func GetBoard(columns []string, columnTypes map[string]string, values []any) models.Board {
+func getBoard(columns []string, columnTypes map[string]string, values []any) models.Board {
 
 	var board models.Board
 	boardVal := reflect.ValueOf(&board).Elem()
@@ -203,17 +203,17 @@ func GetBoard(columns []string, columnTypes map[string]string, values []any) mod
 	return board
 }
 
-func GetBoards(boards FileBoard) []models.Board {
+func getBoards(boards fileBoard) []models.Board {
 
 	parsedBoards := make([]models.Board, len(boards.Data))
+	metadata := make(map[string]string, len(boards.Data))
 
-	metadata := make(map[string]string, 0)
 	for _, column := range boards.Columns {
 		metadata[column] = boards.Metadata[column]["type"].(string)
 	}
 
 	for ind, boardData := range boards.Data {
-		parsedBoards[ind] = GetBoard(boards.Columns, metadata, boardData)
+		parsedBoards[ind] = getBoard(boards.Columns, metadata, boardData)
 	}
 
 	return parsedBoards
@@ -227,11 +227,11 @@ func Transform(filename string) (*models.SecurityWrapper, error) {
 		return nil, readFileErr
 	}
 
-	var model FileModel
+	var model fileModel
 	json.Unmarshal(buf, &model)
 
-	sec := GetSecurity(model.Description.Columns, model.Description.Data)
-	boards := GetBoards(model.Boards)
+	sec := getSecurity(model.Description.Columns, model.Description.Data)
+	boards := getBoards(model.Boards)
 
 	result := models.SecurityWrapper{sec, boards}
 

@@ -12,46 +12,80 @@ import (
 	models "github.com/oriolus/moex/securities/models"
 )
 
+const DestinationDir 	= "securities_info"
+const MoexBaseUrl 		= "http://iss.moex.com/iss/securities/"
+
+type LoadStatus string
+
+const (
+	LoadStatusOk		= "OK"
+	LoadStatusFailed	= "FAILED"
+)
+
 type GetResult struct {
 	SecId  string
 	Status string
 	Error  string
 }
 
-const destinationDir = "securities_info"
-const OK_STATUS = "OK"
-const FAIL_STATUS = "FAIL"
+func NewGetResultSuccess(secId string) GetResult {
+	return GetResult{
+		SecId:	secId,
+		Status:	LoadStatusOk,
+	}
+}
+
+func NewGetResultFailed(secId string, fialReason string) GetResult {
+	return GetResult {
+		SecId:		secId,
+		Status:		LoadStatusFailed,
+		Error:		fialReason,
+	}
+}
 
 type StatusManager struct {
-	Statuses map[string]GetResult
+	statuses map[string]GetResult
+}
+
+func NewStatusManager(length int) StatusManager {
+	return StatusManager{
+		statuses:	make(map[string]GetResult, length),
+	}
 }
 
 func (s *StatusManager) GetResults() []GetResult {
-	result := make([]GetResult, len(s.Statuses))
+	
+	result := make([]GetResult, len(s.statuses))
+	
 	ind := 0
-	for _, val := range s.Statuses {
+	for _, val := range s.statuses {
 		result[ind] = val
 		ind++
 	}
+	
 	return result
 }
 
 func (s *StatusManager) HandleOk(secId string, result string) {
-	s.Statuses[secId] = GetResult{secId, OK_STATUS, ""}
+	s.statuses[secId] = NewGetResultSuccess(secId)
 	s.writeOkFile(secId, []byte(result))
 }
 
 func (s *StatusManager) HandleFail(secId string, errorText string) {
-	s.Statuses[secId] = GetResult{secId, FAIL_STATUS, errorText}
+	s.statuses[secId] = NewGetResultFailed(secId, errorText)
 	s.writeErrorFile(secId, errorText)
 }
 
 func (s *StatusManager) writeErrorFile(secId string, errorTest string) {
-	ioutil.WriteFile(destinationDir+"\\"+FAIL_STATUS+"_"+secId+".json", []byte(errorTest), fs.ModeCharDevice)
+	ioutil.WriteFile(getFileName(secId, LoadStatusFailed), []byte(errorTest), fs.ModeCharDevice)
 }
 
 func (s *StatusManager) writeOkFile(secId string, result []byte) {
-	ioutil.WriteFile(destinationDir+"\\"+OK_STATUS+"_"+secId+".json", result, fs.ModeCharDevice)
+	ioutil.WriteFile(getFileName(secId, LoadStatusOk), result, fs.ModeCharDevice)
+}
+
+func getFileName(secId string, status LoadStatus) string {
+	return DestinationDir + "\\" + string(status) + "_" + secId + ".json"
 }
 
 func GetSecurites(filename string) ([]models.SecurityDim, error) {
@@ -68,8 +102,8 @@ func GetSecurites(filename string) ([]models.SecurityDim, error) {
 }
 
 func ReadHttpGet(secId string) (result *string, err error) {
-	baseUrl := "http://iss.moex.com/iss/securities/"
-	url := baseUrl + secId + ".json"
+
+	url := MoexBaseUrl + secId + ".json"
 
 	resp, err := http.Get(url)
 
@@ -100,7 +134,7 @@ func Load(dimensionFile string) {
 		return
 	}
 
-	manager := StatusManager{make(map[string]GetResult, 0)}
+	manager :=  NewStatusManager(len(securites))
 
 	for i, sec := range securites {
 
