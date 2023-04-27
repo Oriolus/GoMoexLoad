@@ -22,21 +22,21 @@ const (
 	LoadStatusFailed	= "FAILED"
 )
 
-type GetResult struct {
+type getResult struct {
 	SecId  string
 	Status string
 	Error  string
 }
 
-func NewGetResultSuccess(secId string) GetResult {
-	return GetResult{
+func NewGetResultSuccess(secId string) getResult {
+	return getResult{
 		SecId:	secId,
 		Status:	LoadStatusOk,
 	}
 }
 
-func NewGetResultFailed(secId string, fialReason string) GetResult {
-	return GetResult {
+func NewGetResultFailed(secId string, fialReason string) getResult {
+	return getResult {
 		SecId:		secId,
 		Status:		LoadStatusFailed,
 		Error:		fialReason,
@@ -44,18 +44,18 @@ func NewGetResultFailed(secId string, fialReason string) GetResult {
 }
 
 type StatusManager struct {
-	statuses map[string]GetResult
+	statuses map[string]getResult
 }
 
 func NewStatusManager(length int) StatusManager {
 	return StatusManager{
-		statuses:	make(map[string]GetResult, length),
+		statuses:	make(map[string]getResult, length),
 	}
 }
 
-func (s *StatusManager) GetResults() []GetResult {
+func (s *StatusManager) GetResults() []getResult {
 	
-	result := make([]GetResult, len(s.statuses))
+	result := make([]getResult, len(s.statuses))
 	
 	ind := 0
 	for _, val := range s.statuses {
